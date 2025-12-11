@@ -258,38 +258,38 @@ double squantilecpp(const std::function<double(double)>& S, double p, double tol
 
 // Multiply matrix A (m x p) by vector x (length p), A is column-major FlatMatrix.
 std::vector<double> mat_vec_mult(const FlatMatrix& A, const std::vector<double>& x) {
-  int m = A.nrow;
-  int p = A.ncol;
-  if (static_cast<int>(x.size()) != p) throw std::invalid_argument("Vector size mismatch");
-  std::vector<double> result(static_cast<size_t>(m), 0.0);
-  for (int c = 0; c < p; ++c) {
-    double xc = x[static_cast<size_t>(c)];
-    size_t offset = FlatMatrix::idx_col(0, c, m);
+  std::size_t m = A.nrow;
+  std::size_t p = A.ncol;
+  if (x.size() != p) throw std::invalid_argument("Vector size mismatch");
+  std::vector<double> result(m, 0.0);
+  for (std::size_t c = 0; c < p; ++c) {
+    double xc = x[c];
+    std::size_t offset = FlatMatrix::idx_col(0, c, m);
     const double* colptr = A.data_ptr() ? A.data_ptr() + offset : nullptr;
     if (!colptr) continue;
-    for (int r = 0; r < m; ++r) result[static_cast<size_t>(r)] += colptr[static_cast<size_t>(r)] * xc;
+    for (std::size_t r = 0; r < m; ++r) result[r] += colptr[r] * xc;
   }
   return result;
 }
 
 // Multiply A (m x k) * B (k x n) -> C (m x n) using column-major arithmetic and contiguous blocks.
 FlatMatrix mat_mat_mult(const FlatMatrix& A, const FlatMatrix& B) {
-  int m = A.nrow;
-  int k = A.ncol;
-  int k2 = B.nrow;
-  int n = B.ncol;
+  std::size_t m = A.nrow;
+  std::size_t k = A.ncol;
+  std::size_t k2 = B.nrow;
+  std::size_t n = B.ncol;
   if (k != k2) throw std::invalid_argument("Matrix dimensions mismatch");
   if (m == 0 || k == 0 || n == 0) return FlatMatrix();
   FlatMatrix C(m, n);
   // Column-major: For each column j in B/C, compute C[:,j] = sum_{t=0..k-1} A[:,t] * B[t,j]
-  for (int j = 0; j < n; ++j) {
-    size_t coff = FlatMatrix::idx_col(0, j, m);
-    for (int t = 0; t < k; ++t) {
-      size_t aoff = FlatMatrix::idx_col(0, t, m);
-      double scale = B.data[static_cast<size_t>(FlatMatrix::idx_col(t, j, k))];
+  for (std::size_t j = 0; j < n; ++j) {
+    std::size_t coff = FlatMatrix::idx_col(0, j, m);
+    for (std::size_t t = 0; t < k; ++t) {
+      std::size_t aoff = FlatMatrix::idx_col(0, t, m);
+      double scale = B.data[FlatMatrix::idx_col(t, j, k)];
       if (scale == 0.0) continue;
-      for (int i = 0; i < m; ++i) {
-        C.data[coff + static_cast<size_t>(i)] += A.data[aoff + static_cast<size_t>(i)] * scale;
+      for (std::size_t i = 0; i < m; ++i) {
+        C.data[coff + i] += A.data[aoff + i] * scale;
       }
     }
   }
@@ -300,8 +300,8 @@ FlatMatrix mat_mat_mult(const FlatMatrix& A, const FlatMatrix& B) {
 FlatMatrix transpose(const FlatMatrix& A) {
   if (A.nrow == 0 || A.ncol == 0) return FlatMatrix();
   FlatMatrix At(A.ncol, A.nrow);
-  for (int c = 0; c < A.ncol; ++c) {
-    for (int r = 0; r < A.nrow; ++r) {
+  for (std::size_t c = 0; c < A.ncol; ++c) {
+    for (std::size_t r = 0; r < A.nrow; ++r) {
       At.data[FlatMatrix::idx_col(c, r, A.ncol)] = A.data[FlatMatrix::idx_col(r, c, A.nrow)];
     }
   }
@@ -333,24 +333,24 @@ std::vector<double> house(const std::vector<double>& x) {
 // Apply a row Householder (v) to submatrix A[i1..i2, j1..j2]
 // A is represented as FlatMatrix (column-major)
 void row_house(FlatMatrix& A, int i1, int i2, int j1, int j2, const std::vector<double>& v) {
-  int m_total = A.nrow;
+  std::size_t m_total = A.nrow;
   if (m_total == 0) return;
-  int n_total = A.ncol;
-  if (i1 < 0 || i1 > i2 || i2 >= m_total) throw std::invalid_argument("Invalid row indices i1 and i2");
-  if (j1 < 0 || j1 > j2 || j2 >= n_total) throw std::invalid_argument("Invalid column indices j1 and j2");
+  std::size_t n_total = A.ncol;
+  if (i1 < 0 || i1 > i2 || static_cast<std::size_t>(i2) >= m_total) throw std::invalid_argument("Invalid row indices i1 and i2");
+  if (j1 < 0 || j1 > j2 || static_cast<std::size_t>(j2) >= n_total) throw std::invalid_argument("Invalid column indices j1 and j2");
   int m = i2 - i1 + 1;
   int n = j2 - j1 + 1;
   double beta = -2.0 / sumsq(v);
   std::vector<double> w(static_cast<size_t>(n), 0.0);
   for (int jj = 0; jj < n; ++jj) {
-    size_t coloff = FlatMatrix::idx_col(0, j1 + jj, m_total);
+    std::size_t coloff = FlatMatrix::idx_col(0, static_cast<std::size_t>(j1 + jj), m_total);
     double acc = 0.0;
-    for (int ii = 0; ii < m; ++ii) acc += A.data[coloff + static_cast<size_t>(i1 + ii)] * v[static_cast<size_t>(ii)];
+    for (int ii = 0; ii < m; ++ii) acc += A.data[coloff + static_cast<std::size_t>(i1 + ii)] * v[static_cast<size_t>(ii)];
     w[static_cast<size_t>(jj)] = acc * beta;
   }
   for (int ii = 0; ii < m; ++ii) {
     for (int jj = 0; jj < n; ++jj) {
-      size_t idx = FlatMatrix::idx_col(i1 + ii, j1 + jj, m_total);
+      std::size_t idx = FlatMatrix::idx_col(static_cast<std::size_t>(i1 + ii), static_cast<std::size_t>(j1 + jj), m_total);
       A.data[idx] += v[static_cast<size_t>(ii)] * w[static_cast<size_t>(jj)];
     }
   }
@@ -358,28 +358,29 @@ void row_house(FlatMatrix& A, int i1, int i2, int j1, int j2, const std::vector<
 
 // cholesky2: in-place working on FlatMatrix (n x n), returns rank * nonneg
 int cholesky2(FlatMatrix& matrix, int n, double toler) {
+  std::size_t sn = static_cast<std::size_t>(n);
   double eps = 0.0;
-  for (int i = 0; i < n; ++i) {
-    double val = matrix.data[FlatMatrix::idx_col(i, i, n)];
+  for (std::size_t i = 0; i < sn; ++i) {
+    double val = matrix.data[FlatMatrix::idx_col(i, i, sn)];
     if (val > eps) eps = val;
   }
   if (eps == 0.0) eps = toler; else eps *= toler;
   int nonneg = 1;
   int rank = 0;
   
-  for (int i = 0; i < n; ++i) {
-    double pivot = matrix.data[FlatMatrix::idx_col(i, i, n)];
+  for (std::size_t i = 0; i < sn; ++i) {
+    double pivot = matrix.data[FlatMatrix::idx_col(i, i, sn)];
     if (std::isinf(pivot) || pivot < eps) {
-      matrix.data[FlatMatrix::idx_col(i, i, n)] = 0.0;
+      matrix.data[FlatMatrix::idx_col(i, i, sn)] = 0.0;
       if (pivot < -8.0 * eps) nonneg = -1;
     } else {
       ++rank;
-      for (int j = i + 1; j < n; ++j) {
-        double temp = matrix.data[FlatMatrix::idx_col(i, j, n)] / pivot;
-        matrix.data[FlatMatrix::idx_col(i, j, n)] = temp;
-        matrix.data[FlatMatrix::idx_col(j, j, n)] -= temp * temp * pivot;
-        for (int k = j + 1; k < n; ++k) {
-          matrix.data[FlatMatrix::idx_col(j, k, n)] -= temp * matrix.data[FlatMatrix::idx_col(i, k, n)];
+      for (std::size_t j = i + 1; j < sn; ++j) {
+        double temp = matrix.data[FlatMatrix::idx_col(i, j, sn)] / pivot;
+        matrix.data[FlatMatrix::idx_col(i, j, sn)] = temp;
+        matrix.data[FlatMatrix::idx_col(j, j, sn)] -= temp * temp * pivot;
+        for (std::size_t k = j + 1; k < sn; ++k) {
+          matrix.data[FlatMatrix::idx_col(j, k, sn)] -= temp * matrix.data[FlatMatrix::idx_col(i, k, sn)];
         }
       }
     }
@@ -389,53 +390,55 @@ int cholesky2(FlatMatrix& matrix, int n, double toler) {
 
 // chsolve2 assumes matrix holds the representation produced by cholesky2
 void chsolve2(FlatMatrix& matrix, int n, std::vector<double>& y) {
+  std::size_t sn = static_cast<std::size_t>(n);
   // Forward substitution L * z = y
-  for (int i = 0; i < n; ++i) {
-    double temp = y[static_cast<size_t>(i)];
-    for (int j = 0; j < i; ++j) temp -= y[static_cast<size_t>(j)] * matrix.data[FlatMatrix::idx_col(j, i, n)];
-    y[static_cast<size_t>(i)] = temp;
+  for (std::size_t i = 0; i < sn; ++i) {
+    double temp = y[i];
+    for (std::size_t j = 0; j < i; ++j) temp -= y[j] * matrix.data[FlatMatrix::idx_col(j, i, sn)];
+    y[i] = temp;
   }
   // Backward substitution L^T * x = z
-  for (int ii = n - 1; ii >= 0; --ii) {
-    int i = ii;
-    double diag = matrix.data[FlatMatrix::idx_col(i, i, n)];
+  for (std::size_t ii = 0; ii < sn; ++ii) {
+    std::size_t i = sn - 1 - ii;
+    double diag = matrix.data[FlatMatrix::idx_col(i, i, sn)];
     if (diag == 0.0) {
-      y[static_cast<size_t>(i)] = 0.0;
+      y[i] = 0.0;
     } else {
-      double temp = y[static_cast<size_t>(i)] / diag;
-      for (int j = i + 1; j < n; ++j) temp -= y[static_cast<size_t>(j)] * matrix.data[FlatMatrix::idx_col(i, j, n)];
-      y[static_cast<size_t>(i)] = temp;
+      double temp = y[i] / diag;
+      for (std::size_t j = i + 1; j < sn; ++j) temp -= y[j] * matrix.data[FlatMatrix::idx_col(i, j, sn)];
+      y[i] = temp;
     }
   }
 }
 
 // chinv2: invert after decomposition in-place (FlatMatrix)
 void chinv2(FlatMatrix& matrix, int n) {
+  std::size_t sn = static_cast<std::size_t>(n);
   // Step 1: invert diagonal and apply sweep operator
-  for (int i = 0; i < n; ++i) {
-    double mii = matrix.data[FlatMatrix::idx_col(i, i, n)];
+  for (std::size_t i = 0; i < sn; ++i) {
+    double mii = matrix.data[FlatMatrix::idx_col(i, i, sn)];
     if (mii > 0.0) {
-      matrix.data[FlatMatrix::idx_col(i, i, n)] = 1.0 / mii;
-      for (int j = i + 1; j < n; ++j) {
-        size_t idx_ij = FlatMatrix::idx_col(i, j, n);
+      matrix.data[FlatMatrix::idx_col(i, i, sn)] = 1.0 / mii;
+      for (std::size_t j = i + 1; j < sn; ++j) {
+        std::size_t idx_ij = FlatMatrix::idx_col(i, j, sn);
         matrix.data[idx_ij] = -matrix.data[idx_ij];
-        for (int k = 0; k < i; ++k) {
-          matrix.data[FlatMatrix::idx_col(k, j, n)] += matrix.data[idx_ij] * matrix.data[FlatMatrix::idx_col(k, i, n)];
+        for (std::size_t k = 0; k < i; ++k) {
+          matrix.data[FlatMatrix::idx_col(k, j, sn)] += matrix.data[idx_ij] * matrix.data[FlatMatrix::idx_col(k, i, sn)];
         }
       }
     }
   }
   // Step 2: finalize inverse and symmetrize
-  for (int i = 0; i < n; ++i) {
-    double mii = matrix.data[FlatMatrix::idx_col(i, i, n)];
+  for (std::size_t i = 0; i < sn; ++i) {
+    double mii = matrix.data[FlatMatrix::idx_col(i, i, sn)];
     if (mii == 0.0) {
-      for (int j = 0; j < i; ++j) matrix.data[FlatMatrix::idx_col(i, j, n)] = 0.0;
-      for (int j = i; j < n; ++j) matrix.data[FlatMatrix::idx_col(j, i, n)] = 0.0;
+      for (std::size_t j = 0; j < i; ++j) matrix.data[FlatMatrix::idx_col(i, j, sn)] = 0.0;
+      for (std::size_t j = i; j < sn; ++j) matrix.data[FlatMatrix::idx_col(j, i, sn)] = 0.0;
     } else {
-      for (int j = i + 1; j < n; ++j) {
-        double temp = matrix.data[FlatMatrix::idx_col(i, j, n)] * matrix.data[FlatMatrix::idx_col(j, j, n)];
-        matrix.data[FlatMatrix::idx_col(j, i, n)] = temp;
-        for (int k = i; k < j; ++k) matrix.data[FlatMatrix::idx_col(k, i, n)] += temp * matrix.data[FlatMatrix::idx_col(k, j, n)];
+      for (std::size_t j = i + 1; j < sn; ++j) {
+        double temp = matrix.data[FlatMatrix::idx_col(i, j, sn)] * matrix.data[FlatMatrix::idx_col(j, j, sn)];
+        matrix.data[FlatMatrix::idx_col(j, i, sn)] = temp;
+        for (std::size_t k = i; k < j; ++k) matrix.data[FlatMatrix::idx_col(k, i, sn)] += temp * matrix.data[FlatMatrix::idx_col(k, j, sn)];
       }
     }
   }
@@ -443,13 +446,14 @@ void chinv2(FlatMatrix& matrix, int n) {
 
 // invsympd: invert symmetric positive definite matrix (returns FlatMatrix)
 FlatMatrix invsympd(const FlatMatrix& matrix, int n, double toler) {
+  std::size_t sn = static_cast<std::size_t>(n);
   FlatMatrix v = matrix; // copy
   cholesky2(v, n, toler);
   chinv2(v, n);
   // fill symmetric entries (upper -> lower)
-  for (int i = 1; i < n; ++i) {
-    for (int j = 0; j < i; ++j) {
-      v.data[FlatMatrix::idx_col(j, i, n)] = v.data[FlatMatrix::idx_col(i, j, n)];
+  for (std::size_t i = 1; i < sn; ++i) {
+    for (std::size_t j = 0; j < i; ++j) {
+      v.data[FlatMatrix::idx_col(j, i, sn)] = v.data[FlatMatrix::idx_col(i, j, sn)];
     }
   }
   return v;
@@ -525,8 +529,8 @@ double max_elem(const std::vector<double>& x, int start, int end) {
 // Implementation reuses original algorithm but converts columns to a working
 // row-major container internally for clarity; outputs Q/R as FlatMatrix.
 ListCpp qrcpp(const FlatMatrix& X, double tol) {
-  int m = X.nrow;
-  int n = X.ncol;
+  std::size_t m = X.nrow;
+  std::size_t n = X.ncol;
   if (m == 0 || n == 0) {
     ListCpp empty_res;
     empty_res.push_back(0, "rank");
@@ -537,67 +541,67 @@ ListCpp qrcpp(const FlatMatrix& X, double tol) {
   FlatMatrix A = X;
   
   // squared column norms
-  std::vector<double> cvec(static_cast<size_t>(n), 0.0);
-  for (int j = 0; j < n; ++j) {
-    size_t off = FlatMatrix::idx_col(0, j, m);
+  std::vector<double> cvec(n, 0.0);
+  for (std::size_t j = 0; j < n; ++j) {
+    std::size_t off = FlatMatrix::idx_col(0, j, m);
     double s = 0.0;
-    for (int i = 0; i < m; ++i) {
-      double v = A.data[off + static_cast<size_t>(i)];
+    for (std::size_t i = 0; i < m; ++i) {
+      double v = A.data[off + i];
       s += v * v;
     }
-    cvec[static_cast<size_t>(j)] = s;
+    cvec[j] = s;
   }
   
   int r = -1;
-  std::vector<int> piv(static_cast<size_t>(n));
+  std::vector<int> piv(n);
   std::iota(piv.begin(), piv.end(), 0);
   double tau = 0.0;
-  if (n > 0) tau = max_elem(cvec, 0, n - 1);
+  if (n > 0) tau = max_elem(cvec, 0, static_cast<int>(n) - 1);
   
   while (tau > tol) {
     ++r;
     // find next pivot index kidx (first column with cvec > tol starting at r)
     int kidx = r;
-    for (int kk = r; kk < n; ++kk) {
-      if (cvec[static_cast<size_t>(kk)] > tol) { kidx = kk; break; }
+    for (std::size_t kk = static_cast<std::size_t>(r); kk < n; ++kk) {
+      if (cvec[kk] > tol) { kidx = static_cast<int>(kk); break; }
     }
     
     // swap columns r and kidx in A, swap pivot indices and cvec
     if (kidx != r) {
       // swap column data
-      size_t off_r = FlatMatrix::idx_col(0, r, m);
-      size_t off_k = FlatMatrix::idx_col(0, kidx, m);
-      for (int ii = 0; ii < m; ++ii) {
-        std::swap(A.data[off_r + static_cast<size_t>(ii)], A.data[off_k + static_cast<size_t>(ii)]);
+      std::size_t off_r = FlatMatrix::idx_col(0, static_cast<std::size_t>(r), m);
+      std::size_t off_k = FlatMatrix::idx_col(0, static_cast<std::size_t>(kidx), m);
+      for (std::size_t ii = 0; ii < m; ++ii) {
+        std::swap(A.data[off_r + ii], A.data[off_k + ii]);
       }
       std::swap(piv[static_cast<size_t>(r)], piv[static_cast<size_t>(kidx)]);
       std::swap(cvec[static_cast<size_t>(r)], cvec[static_cast<size_t>(kidx)]);
     }
     
     // Householder on column r (subcolumn rows r..m-1)
-    int msub = m - r;
+    int msub = static_cast<int>(m) - r;
     std::vector<double> x(static_cast<size_t>(msub));
     for (int i = 0; i < msub; ++i) {
-      x[static_cast<size_t>(i)] = A.data[FlatMatrix::idx_col(r + i, r, m)];
+      x[static_cast<size_t>(i)] = A.data[FlatMatrix::idx_col(static_cast<std::size_t>(r + i), static_cast<std::size_t>(r), m)];
     }
     std::vector<double> v = house(x); // v[0] == 1
     
     // apply Householder to A[r..m-1, r..n-1]
-    if (msub > 0 && r < n) row_house(A, r, m - 1, r, n - 1, v);
+    if (msub > 0 && static_cast<std::size_t>(r) < n) row_house(A, r, static_cast<int>(m) - 1, r, static_cast<int>(n) - 1, v);
     
     // store Householder vector in sub-diagonal of A (positions r+1..m-1, column r)
     for (int i = 1; i < msub; ++i) {
-      A.data[FlatMatrix::idx_col(r + i, r, m)] = v[static_cast<size_t>(i)];
+      A.data[FlatMatrix::idx_col(static_cast<std::size_t>(r + i), static_cast<std::size_t>(r), m)] = v[static_cast<size_t>(i)];
     }
     
     // update squared norms for remaining columns
-    for (int j = r + 1; j < n; ++j) {
-      double val = A.data[FlatMatrix::idx_col(r, j, m)];
-      cvec[static_cast<size_t>(j)] -= val * val;
-      if (cvec[static_cast<size_t>(j)] < 0.0) cvec[static_cast<size_t>(j)] = 0.0;
+    for (std::size_t j = static_cast<std::size_t>(r) + 1; j < n; ++j) {
+      double val = A.data[FlatMatrix::idx_col(static_cast<std::size_t>(r), j, m)];
+      cvec[j] -= val * val;
+      if (cvec[j] < 0.0) cvec[j] = 0.0;
     }
     
-    if (r < n - 1) tau = max_elem(cvec, r + 1, n - 1);
+    if (static_cast<std::size_t>(r) < n - 1) tau = max_elem(cvec, r + 1, static_cast<int>(n) - 1);
     else tau = 0.0;
   } // end while
   
@@ -605,34 +609,34 @@ ListCpp qrcpp(const FlatMatrix& X, double tol) {
   // Recover Q (m x m) from stored Householder vectors in A
   FlatMatrix Qf(m, m);
   // initialize identity
-  for (int c = 0; c < m; ++c) {
-    size_t off = FlatMatrix::idx_col(0, c, m);
-    for (int i = 0; i < m; ++i) Qf.data[off + static_cast<size_t>(i)] = 0.0;
+  for (std::size_t c = 0; c < m; ++c) {
+    std::size_t off = FlatMatrix::idx_col(0, c, m);
+    for (std::size_t i = 0; i < m; ++i) Qf.data[off + i] = 0.0;
     Qf.data[FlatMatrix::idx_col(c, c, m)] = 1.0;
   }
   
   if (r >= 0) {
     for (int kk = r; kk >= 0; --kk) {
-      int msub_k = m - kk;
+      int msub_k = static_cast<int>(m) - kk;
       std::vector<double> vks(static_cast<size_t>(msub_k));
       vks[0] = 1.0;
       for (int ii = 1; ii < msub_k; ++ii) {
-        vks[static_cast<size_t>(ii)] = A.data[FlatMatrix::idx_col(kk + ii, kk, m)];
+        vks[static_cast<size_t>(ii)] = A.data[FlatMatrix::idx_col(static_cast<std::size_t>(kk + ii), static_cast<std::size_t>(kk), m)];
       }
       
       // apply to Qf[kk..m-1, kk..m-1]
       std::vector<double> w(static_cast<size_t>(msub_k), 0.0);
-      for (int jj = kk; jj < m; ++jj) {
+      for (std::size_t jj = static_cast<std::size_t>(kk); jj < m; ++jj) {
         double acc = 0.0;
         for (int ii = 0; ii < msub_k; ++ii) {
-          acc += Qf.data[FlatMatrix::idx_col(kk + ii, jj, m)] * vks[static_cast<size_t>(ii)];
+          acc += Qf.data[FlatMatrix::idx_col(static_cast<std::size_t>(kk + ii), jj, m)] * vks[static_cast<size_t>(ii)];
         }
-        w[static_cast<size_t>(jj - kk)] = acc * (-2.0 / sumsq(vks));
+        w[jj - static_cast<std::size_t>(kk)] = acc * (-2.0 / sumsq(vks));
       }
       for (int ii = 0; ii < msub_k; ++ii) {
-        for (int jj = kk; jj < m; ++jj) {
-          size_t idx = FlatMatrix::idx_col(kk + ii, jj, m);
-          Qf.data[idx] += vks[static_cast<size_t>(ii)] * w[static_cast<size_t>(jj - kk)];
+        for (std::size_t jj = static_cast<std::size_t>(kk); jj < m; ++jj) {
+          std::size_t idx = FlatMatrix::idx_col(static_cast<std::size_t>(kk + ii), jj, m);
+          Qf.data[idx] += vks[static_cast<size_t>(ii)] * w[jj - static_cast<std::size_t>(kk)];
         }
       }
     }
@@ -642,8 +646,8 @@ ListCpp qrcpp(const FlatMatrix& X, double tol) {
   FlatMatrix Rf(m, n);
   // initialize zeros
   std::fill(Rf.data.begin(), Rf.data.end(), 0.0);
-  for (int j = 0; j < n; ++j) {
-    for (int i = 0; i <= j && i < m; ++i) {
+  for (std::size_t j = 0; j < n; ++j) {
+    for (std::size_t i = 0; i <= j && i < m; ++i) {
       Rf.data[FlatMatrix::idx_col(i, j, m)] = A.data[FlatMatrix::idx_col(i, j, m)];
     }
   }
@@ -894,13 +898,13 @@ double getpsiend(const std::function<double(double)>& f,
 
 // --------------------------- bygroup (rewritten to use DataFrameCpp/ListCpp) ----
 ListCpp bygroup(const DataFrameCpp& data, const std::vector<std::string>& variables) {
-  int n = static_cast<int>(data.nrows());
+  std::size_t n = data.nrows();
   int p = static_cast<int>(variables.size());
   ListCpp result;
   std::vector<int> nlevels(static_cast<size_t>(p));
   
   // IntMatrix for indices (n rows, p cols), column-major storage
-  IntMatrix indices_im(n, p);
+  IntMatrix indices_im(n, static_cast<std::size_t>(p));
   
   // Flattened lookup buffers and per-variable metadata
   struct VarLookupInfo {
@@ -934,8 +938,8 @@ ListCpp bygroup(const DataFrameCpp& data, const std::vector<std::string>& variab
       var_info[static_cast<size_t>(i)] = VarLookupInfo{0, off, static_cast<int>(w.size())};
       
       // fill indices_im column i (column-major layout)
-      for (int r = 0; r < n; ++r) {
-        indices_im.data[IntMatrix::idx_col(r, i, n)] = idx[static_cast<size_t>(r)];
+      for (std::size_t r = 0; r < n; ++r) {
+        indices_im.data[IntMatrix::idx_col(r, static_cast<std::size_t>(i), n)] = idx[r];
       }
       
       DataFrameCpp df_uv;
@@ -952,8 +956,8 @@ ListCpp bygroup(const DataFrameCpp& data, const std::vector<std::string>& variab
       dbl_flat.insert(dbl_flat.end(), w.begin(), w.end());
       var_info[static_cast<size_t>(i)] = VarLookupInfo{1, off, static_cast<int>(w.size())};
       
-      for (int r = 0; r < n; ++r) {
-        indices_im.data[IntMatrix::idx_col(r, i, n)] = idx[static_cast<size_t>(r)];
+      for (std::size_t r = 0; r < n; ++r) {
+        indices_im.data[IntMatrix::idx_col(r, static_cast<std::size_t>(i), n)] = idx[r];
       }
       
       DataFrameCpp df_uv;
@@ -971,8 +975,8 @@ ListCpp bygroup(const DataFrameCpp& data, const std::vector<std::string>& variab
       for (bool bv : w) bool_flat.push_back(bv ? 1u : 0u);
       var_info[static_cast<size_t>(i)] = VarLookupInfo{2, off, static_cast<int>(w.size())};
       
-      for (int r = 0; r < n; ++r) {
-        indices_im.data[IntMatrix::idx_col(r, i, n)] = idx[static_cast<size_t>(r)];
+      for (std::size_t r = 0; r < n; ++r) {
+        indices_im.data[IntMatrix::idx_col(r, static_cast<std::size_t>(i), n)] = idx[r];
       }
       
       DataFrameCpp df_uv;
@@ -989,8 +993,8 @@ ListCpp bygroup(const DataFrameCpp& data, const std::vector<std::string>& variab
       str_flat.insert(str_flat.end(), w.begin(), w.end());
       var_info[static_cast<size_t>(i)] = VarLookupInfo{3, off, static_cast<int>(w.size())};
       
-      for (int r = 0; r < n; ++r) {
-        indices_im.data[IntMatrix::idx_col(r, i, n)] = idx[static_cast<size_t>(r)];
+      for (std::size_t r = 0; r < n; ++r) {
+        indices_im.data[IntMatrix::idx_col(r, static_cast<std::size_t>(i), n)] = idx[r];
       }
       
       DataFrameCpp df_uv;
@@ -1003,15 +1007,15 @@ ListCpp bygroup(const DataFrameCpp& data, const std::vector<std::string>& variab
   } // end for variables
   
   // compute combined index
-  std::vector<int> combined_index(static_cast<size_t>(n), 0);
+  std::vector<int> combined_index(n, 0);
   int orep = 1;
   for (int i = 0; i < p; ++i) orep *= (nlevels[static_cast<size_t>(i)] > 0 ? nlevels[static_cast<size_t>(i)] : 1);
   for (int i = 0; i < p; ++i) {
     int denom = (nlevels[static_cast<size_t>(i)] > 0 ? nlevels[static_cast<size_t>(i)] : 1);
     orep /= denom;
-    for (int j = 0; j < n; ++j) {
-      int val = indices_im.data[IntMatrix::idx_col(j, i, n)];
-      combined_index[static_cast<size_t>(j)] += val * orep;
+    for (std::size_t j = 0; j < n; ++j) {
+      int val = indices_im.data[IntMatrix::idx_col(j, static_cast<std::size_t>(i), n)];
+      combined_index[j] += val * orep;
     }
   }
   
