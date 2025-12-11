@@ -121,7 +121,7 @@ ListCpp f_der_0(int p, const std::vector<double>& par, void *ex, bool firth) {
       for (size_t j = 0; j <= i; ++j) {
         size_t off_j = FlatMatrix::idx_col(0, static_cast<int>(j), n);
         double zj = Z.data[off_j + person];
-        size_t idx = FlatMatrix::idx_col(static_cast<int>(i), static_cast<int>(j), p); // row=i, col=j in p x p
+        size_t idx = FlatMatrix::idx_col(static_cast<std::size_t>(i), static_cast<int>(j), p); // row=i, col=j in p x p
         imat.data[idx] += f * w * v_for_info * zi * zj;
       }
     }
@@ -153,8 +153,8 @@ ListCpp f_der_0(int p, const std::vector<double>& par, void *ex, bool firth) {
   // mirror lower to upper triangle of imat
   for (size_t i = 0; i < pp; ++i) {
     for (size_t j = i + 1; j < pp; ++j) {
-      size_t idx_lower = FlatMatrix::idx_col(static_cast<int>(j), static_cast<int>(i), p); // stored at row=j, col=i
-      size_t idx_upper = FlatMatrix::idx_col(static_cast<int>(i), static_cast<int>(j), p); // row=i, col=j
+      size_t idx_lower = FlatMatrix::idx_col(static_cast<std::size_t>(j), static_cast<int>(i), p); // stored at row=j, col=i
+      size_t idx_upper = FlatMatrix::idx_col(static_cast<std::size_t>(i), static_cast<int>(j), p); // row=i, col=j
       imat.data[idx_upper] = imat.data[idx_lower];
     }
   }
@@ -165,7 +165,7 @@ ListCpp f_der_0(int p, const std::vector<double>& par, void *ex, bool firth) {
     cholesky2(imat0, p, 1e-12);
     double vdet = 0.0;
     for (size_t i = 0; i < pp; ++i) {
-      size_t idx = FlatMatrix::idx_col(static_cast<int>(i), static_cast<int>(i), p);
+      size_t idx = FlatMatrix::idx_col(static_cast<std::size_t>(i), static_cast<int>(i), p);
       vdet += std::log(imat0.data[idx]);
     }
     double penloglik = loglik + 0.5 * vdet;
@@ -182,7 +182,7 @@ ListCpp f_der_0(int p, const std::vector<double>& par, void *ex, bool firth) {
         for (size_t j = 0; j <= i; ++j) {
           size_t off_j = FlatMatrix::idx_col(0, static_cast<int>(j), n);
           double zj = Z.data[off_j + person];
-          size_t idx = FlatMatrix::idx_col(static_cast<int>(i), static_cast<int>(j), p);
+          size_t idx = FlatMatrix::idx_col(static_cast<std::size_t>(i), static_cast<int>(j), p);
           xwx.data[idx] += mult * zi * zj;
         }
       }
@@ -190,8 +190,8 @@ ListCpp f_der_0(int p, const std::vector<double>& par, void *ex, bool firth) {
     // mirror
     for (size_t i = 0; i < pp; ++i) {
       for (size_t j = i + 1; j < pp; ++j) {
-        size_t idx_lower = FlatMatrix::idx_col(static_cast<int>(j), static_cast<int>(i), p);
-        size_t idx_upper = FlatMatrix::idx_col(static_cast<int>(i), static_cast<int>(j), p);
+        size_t idx_lower = FlatMatrix::idx_col(static_cast<std::size_t>(j), static_cast<int>(i), p);
+        size_t idx_upper = FlatMatrix::idx_col(static_cast<std::size_t>(i), static_cast<int>(j), p);
         xwx.data[idx_upper] = xwx.data[idx_lower];
       }
     }
@@ -211,7 +211,7 @@ ListCpp f_der_0(int p, const std::vector<double>& par, void *ex, bool firth) {
         size_t off_i = FlatMatrix::idx_col(0, static_cast<int>(i), n);
         double zi = Z.data[off_i + person];
         for (size_t j = 0; j < pp; ++j) {
-          size_t idx_var = FlatMatrix::idx_col(static_cast<int>(i), static_cast<int>(j), p);
+          size_t idx_var = FlatMatrix::idx_col(static_cast<std::size_t>(i), static_cast<int>(j), p);
           h += varf.data[idx_var] * zi * Z.data[FlatMatrix::idx_col(0, static_cast<int>(j), n) + person];
         }
       }
@@ -232,7 +232,7 @@ ListCpp f_der_0(int p, const std::vector<double>& par, void *ex, bool firth) {
     std::vector<std::vector<double>> imat_out(pp, std::vector<double>(pp));
     for (size_t i = 0; i < pp; ++i)
       for (size_t j = 0; j < pp; ++j)
-        imat_out[i][j] = imat.data[FlatMatrix::idx_col(static_cast<int>(i), static_cast<int>(j), p)];
+        imat_out[i][j] = imat.data[FlatMatrix::idx_col(static_cast<std::size_t>(i), static_cast<int>(j), p)];
     result.push_back(imat_out, "imat");
     result.push_back(loglik, "regloglik");
     result.push_back(score, "regscore");
@@ -243,7 +243,7 @@ ListCpp f_der_0(int p, const std::vector<double>& par, void *ex, bool firth) {
     std::vector<std::vector<double>> imat_out(pp, std::vector<double>(pp));
     for (size_t i = 0; i < pp; ++i)
       for (size_t j = 0; j < pp; ++j)
-        imat_out[i][j] = imat.data[FlatMatrix::idx_col(static_cast<int>(i), static_cast<int>(j), p)];
+        imat_out[i][j] = imat.data[FlatMatrix::idx_col(static_cast<std::size_t>(i), static_cast<int>(j), p)];
     result.push_back(loglik, "loglik");
     result.push_back(score, "score");
     result.push_back(imat_out, "imat");
@@ -301,7 +301,7 @@ FlatMatrix f_ressco_0(int p, const std::vector<double>& par, void *ex) {
     for (size_t i = 0; i < pp; ++i) {
       size_t zoff = FlatMatrix::idx_col(0, static_cast<int>(i), n);
       double zi = Z.data[zoff + person];
-      size_t idx = FlatMatrix::idx_col(static_cast<int>(person), static_cast<int>(i), n);
+      size_t idx = FlatMatrix::idx_col(static_cast<std::size_t>(person), static_cast<int>(i), n);
       resid.data[idx] = v * dscale * zi;
     }
   }
