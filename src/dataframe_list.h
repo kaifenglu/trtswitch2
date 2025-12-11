@@ -27,22 +27,22 @@
 //
 struct FlatMatrix {
   std::vector<double> data; // column-major: element (r,c) => data[c * nrow + r]
-  int nrow = 0;
-  int ncol = 0;
+  std::size_t nrow = 0;
+  std::size_t ncol = 0;
   
   FlatMatrix() = default;
-  FlatMatrix(int nr, int nc) : data(static_cast<size_t>(nr) * static_cast<size_t>(nc)),
+  FlatMatrix(std::size_t nr, std::size_t nc) : data(nr * nc),
   nrow(nr), ncol(nc) {}
   
-  FlatMatrix(std::vector<double>&& d, int nr, int nc)
+  FlatMatrix(std::vector<double>&& d, std::size_t nr, std::size_t nc)
     : data(std::move(d)), nrow(nr), ncol(nc) {
-    if (static_cast<size_t>(nr) * static_cast<size_t>(nc) != data.size())
+    if (nr * nc != data.size())
       throw std::runtime_error("FlatMatrix: data size mismatch with dimensions");
   }
   
-  inline void resize(int nr, int nc) {
+  inline void resize(std::size_t nr, std::size_t nc) {
     nrow = nr; ncol = nc;
-    data.resize(static_cast<size_t>(nr) * static_cast<size_t>(nc));
+    data.resize(nr * nc);
   }
   
   inline void fill(double v) { std::fill(data.begin(), data.end(), v); }
@@ -52,14 +52,14 @@ struct FlatMatrix {
   inline size_t size() const noexcept { return data.size(); }
   
   // column-major index helper
-  inline static size_t idx_col(int row, int col, int nrows) noexcept {
-    return static_cast<size_t>(col) * static_cast<size_t>(nrows) + static_cast<size_t>(row);
+  inline static std::size_t idx_col(std::size_t row, std::size_t col, std::size_t nrows) noexcept {
+    return col * nrows + row;
   }
   
-  inline double& operator()(int r, int c) {
+  inline double& operator()(std::size_t r, std::size_t c) {
     return data[idx_col(r, c, nrow)];
   }
-  inline double operator()(int r, int c) const {
+  inline double operator()(std::size_t r, std::size_t c) const {
     return data[idx_col(r, c, nrow)];
   }
   
@@ -73,22 +73,22 @@ struct FlatMatrix {
 //
 struct IntMatrix {
   std::vector<int> data; // column-major: element (r,c) => data[c * nrow + r]
-  int nrow = 0;
-  int ncol = 0;
+  std::size_t nrow = 0;
+  std::size_t ncol = 0;
   
   IntMatrix() = default;
-  IntMatrix(int nr, int nc) : data(static_cast<size_t>(nr) * static_cast<size_t>(nc)),
+  IntMatrix(std::size_t nr, std::size_t nc) : data(nr * nc),
   nrow(nr), ncol(nc) {}
   
-  IntMatrix(std::vector<int>&& d, int nr, int nc)
+  IntMatrix(std::vector<int>&& d, std::size_t nr, std::size_t nc)
     : data(std::move(d)), nrow(nr), ncol(nc) {
-    if (static_cast<size_t>(nr) * static_cast<size_t>(nc) != data.size())
+    if (nr * nc != data.size())
       throw std::runtime_error("IntMatrix: data size mismatch with dimensions");
   }
   
-  inline void resize(int nr, int nc) {
+  inline void resize(std::size_t nr, std::size_t nc) {
     nrow = nr; ncol = nc;
-    data.resize(static_cast<size_t>(nr) * static_cast<size_t>(nc));
+    data.resize(nr * nc);
   }
   
   inline void fill(int v) { std::fill(data.begin(), data.end(), v); }
@@ -98,14 +98,14 @@ struct IntMatrix {
   inline size_t size() const noexcept { return data.size(); }
   
   // column-major index helper
-  inline static size_t idx_col(int row, int col, int nrows) noexcept {
-    return static_cast<size_t>(col) * static_cast<size_t>(nrows) + static_cast<size_t>(row);
+  inline static std::size_t idx_col(std::size_t row, std::size_t col, std::size_t nrows) noexcept {
+    return col * nrows + row;
   }
   
-  inline int& operator()(int r, int c) {
+  inline int& operator()(std::size_t r, std::size_t c) {
     return data[idx_col(r, c, nrow)];
   }
-  inline int operator()(int r, int c) const {
+  inline int operator()(std::size_t r, std::size_t c) const {
     return data[idx_col(r, c, nrow)];
   }
   
@@ -128,7 +128,7 @@ struct DataFrameCpp {
   
   DataFrameCpp() = default;
   
-  inline static size_t idx_col(int row, int col, int nrows) noexcept {
+  inline static std::size_t idx_col(std::size_t row, std::size_t col, std::size_t nrows) noexcept {
     return FlatMatrix::idx_col(row, col, nrows);
   }
   
@@ -180,7 +180,7 @@ struct DataFrameCpp {
   
   // Efficient: push_back_flat accepts a column-major flattened buffer containing nrows * p values
   // and will create p new columns named base_name, base_name.1, ..., base_name.p (if p>1)
-  void push_back_flat(const std::vector<double>& flat_col_major, int nrows, const std::string& base_name);
+  void push_back_flat(const std::vector<double>& flat_col_major, std::size_t nrows, const std::string& base_name);
   
   // Push front variants (const& + && for all types)
   void push_front(const std::vector<double>& col, const std::string& name);
@@ -238,9 +238,9 @@ struct DataFrameCpp {
     auto it = numeric_cols.find(name);
     return it == numeric_cols.end() ? nullptr : it->second.data();
   }
-  int numeric_col_nrows(const std::string& name) const noexcept {
+  std::size_t numeric_col_nrows(const std::string& name) const noexcept {
     auto it = numeric_cols.find(name);
-    return it == numeric_cols.end() ? 0 : static_cast<int>(it->second.size());
+    return it == numeric_cols.end() ? 0 : it->second.size();
   }
 
   const int* int_col_ptr(const std::string& name) const noexcept {
@@ -248,9 +248,9 @@ struct DataFrameCpp {
     return it == int_cols.end() ? nullptr : it->second.data();
   }
   
-  int int_col_nrows(const std::string& name) const noexcept {
+  std::size_t int_col_nrows(const std::string& name) const noexcept {
     auto it = int_cols.find(name);
-    return it == int_cols.end() ? 0 : static_cast<int>(it->second.size());
+    return it == int_cols.end() ? 0 : it->second.size();
   }
   
   // reserve map buckets (useful to avoid rehashing)
@@ -373,14 +373,14 @@ template <> inline SEXP wrap(const ListCpp& l) {
   return Rcpp::wrap(convertListCppToR(l));
 }
 template <> inline SEXP wrap(const FlatMatrix& fm) {
-  if (fm.nrow <= 0 || fm.ncol <= 0) return R_NilValue;
-  Rcpp::NumericMatrix M(fm.nrow, fm.ncol);
+  if (fm.nrow == 0 || fm.ncol == 0) return R_NilValue;
+  Rcpp::NumericMatrix M(static_cast<int>(fm.nrow), static_cast<int>(fm.ncol));
   std::memcpy(REAL(M), fm.data.data(), fm.data.size() * sizeof(double));
   return Rcpp::wrap(M);
 }
 template <> inline SEXP wrap(const IntMatrix& im) {
-  if (im.nrow <= 0 || im.ncol <= 0) return R_NilValue;
-  Rcpp::IntegerMatrix M(im.nrow, im.ncol);
+  if (im.nrow == 0 || im.ncol == 0) return R_NilValue;
+  Rcpp::IntegerMatrix M(static_cast<int>(im.nrow), static_cast<int>(im.ncol));
   std::memcpy(INTEGER(M), im.data.data(), im.data.size() * sizeof(int));
   return Rcpp::wrap(M);
 }
@@ -397,7 +397,7 @@ const double* numeric_column_ptr(const DataFrameCpp& df, const std::string& name
 void move_numeric_column(DataFrameCpp& df, std::vector<double>&& col, const std::string& name);
 const int* int_column_ptr(const DataFrameCpp& df, const std::string& name) noexcept;
 void move_int_column(DataFrameCpp& df, std::vector<int>&& col, const std::string& name);
-DataFrameCpp subset_rows(const DataFrameCpp& df, const std::vector<int>& row_idx);
+DataFrameCpp subset_rows(const DataFrameCpp& df, const std::vector<std::size_t>& row_idx);
 std::shared_ptr<ListCpp> listcpp_from_rlist(const Rcpp::List& rlist);
 
 #endif // __DATAFRAME_LIST__
