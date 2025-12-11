@@ -552,7 +552,7 @@ ListCpp qrcpp(const FlatMatrix& X, double tol) {
   std::vector<int> piv(n);
   std::iota(piv.begin(), piv.end(), 0);
   double tau = 0.0;
-  if (n > 0) tau = max_elem(cvec, 0, static_cast<int>(n) - 1);
+  if (n > 0) tau = max_elem(cvec, 0, static_cast<int>(n - 1));
   
   while (tau > tol) {
     ++r;
@@ -597,7 +597,7 @@ ListCpp qrcpp(const FlatMatrix& X, double tol) {
       if (cvec[j] < 0.0) cvec[j] = 0.0;
     }
     
-    if (static_cast<std::size_t>(r + 1) < n) tau = max_elem(cvec, r + 1, static_cast<int>(n) - 1);
+    if (static_cast<std::size_t>(r + 1) < n) tau = max_elem(cvec, r + 1, static_cast<int>(n - 1));
     else tau = 0.0;
   } // end while
   
