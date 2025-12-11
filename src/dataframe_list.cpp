@@ -99,7 +99,7 @@ void DataFrameCpp::push_back(const std::string& value, const std::string& name) 
 void DataFrameCpp::push_back_flat(const std::vector<double>& flat_col_major, std::size_t nrows, const std::string& base_name) {
   if (flat_col_major.empty()) return;
   if (containElementNamed(base_name)) throw std::runtime_error("Column '" + base_name + "' already exists.");
-  if (nrows == 0) throw std::runtime_error("nrows must be > 0");
+  if (nrows == 0) throw std::runtime_error("nrows must not be 0");
   if (flat_col_major.size() % nrows != 0)
     throw std::runtime_error("flattened data size is not divisible by nrows");
   std::size_t p = flat_col_major.size() / nrows;
